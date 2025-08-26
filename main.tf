@@ -31,7 +31,7 @@ resource "aws_instance" "NPAPublisher" {
   key_name                    = var.aws_key_name
   subnet_id                   = var.aws_subnet
   vpc_security_group_ids      = [var.aws_security_group]
-  user_data                   = "${var.use_ssm == true ? "" : netskope_npa_publisher_token}" 
+  user_data                   = "${var.use_ssm == true ? "" : netskope_npa_publisher_token.Publisher.token}" 
   monitoring                  = var.aws_monitoring
   ebs_optimized               = var.ebs_optimized
 
@@ -65,7 +65,7 @@ resource "aws_ssm_document" "PublisherRegistration" {
         "properties": [
           {
             "id": "0.aws:runShellScript",
-            "runCommand": ["sudo /home/ubuntu/npa_publisher_wizard -token \"${netskope_npa_publisher_token}\""] 
+            "runCommand": ["sudo /home/ubuntu/npa_publisher_wizard -token \"${netskope_npa_publisher_token.Publisher.token}\""] 
           }
         ]
       }
