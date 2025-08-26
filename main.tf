@@ -2,7 +2,7 @@
 //
 //Create Publisher in Netskope
 resource "netskope_npa_publisher" "Publisher" {
-  name = var.publisher_name
+  publisher_name = var.publisher_name
 }
 
 //AWS Data
