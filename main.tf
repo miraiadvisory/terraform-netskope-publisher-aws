@@ -8,14 +8,18 @@ resource "netskope_npa_publisher" "Publisher" {
 
 resource "netskope_npa_publisher_token" "Publisher" {
   publisher_id = netskope_npa_publisher.Publisher.publisher_id 
-  
   lifecycle {
     replace_triggered_by = [
-      data.aws_ami.npa-publisher.id
+      null_resource.ami_change.id
     ]
   }
 }
 
+resource "null_resource" "ami_change" {
+  triggers = {
+    ami_id = data.aws_ami.npa-publisher.id
+  }
+}
 
 //AWS Data
 //
