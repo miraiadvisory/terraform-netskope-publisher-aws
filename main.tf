@@ -5,9 +5,24 @@ resource "netskope_npa_publisher" "Publisher" {
   publisher_name = var.publisher_name
 }
 
+
 resource "netskope_npa_publisher_token" "Publisher" {
   publisher_id = netskope_npa_publisher.Publisher.publisher_id 
+  
+  lifecycle {
+    replace_triggered_by = [
+      null_resource.always_refresh.id
+    ]
+  }
 }
+
+resource "null_resource" "always_refresh" {
+  triggers = {
+    refresh = timestamp()
+  }
+}
+
+
 
 //AWS Data
 //
