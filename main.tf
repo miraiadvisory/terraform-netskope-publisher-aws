@@ -62,6 +62,7 @@ resource "aws_instance" "NPAPublisher" {
 
 }
 
+
 //Create SSM Document for Publisher with versioning
 resource "aws_ssm_document" "PublisherRegistration" {
   count = var.use_ssm == true ? 1 : 0
@@ -77,7 +78,7 @@ resource "aws_ssm_document" "PublisherRegistration" {
         properties = [
           {
             id         = "0.aws:runShellScript"
-            runCommand = ["sudo /home/ubuntu/npa_publisher_wizard -token \"${netskope_npa_publisher_token.Publisher[0].token}\""]
+            runCommand = ["sudo /home/ubuntu/npa_publisher_wizard -token \"${netskope_npa_publisher_token.Publisher.token}\""]
           }
         ]
       }
@@ -86,13 +87,13 @@ resource "aws_ssm_document" "PublisherRegistration" {
 
   document_format = "JSON"
   
-  # Don't recreate, just create new versions
+  # Create new version when content changes
   lifecycle {
-    ignore_changes = [content]
+    create_before_destroy = true
   }
 }
 
-//Associate Publisher with SSM - use default_version to get latest
+//Associate Publisher with SSM
 resource "aws_ssm_association" "register_publishers" {
   count = var.use_ssm == true ? 1 : 0
   name              = aws_ssm_document.PublisherRegistration[0].name
@@ -106,34 +107,8 @@ resource "aws_ssm_association" "register_publishers" {
   lifecycle {
     create_before_destroy = true
   }
+  
+  depends_on = [aws_ssm_document.PublisherRegistration]
 }
 
-//Create new document version when token changes
-resource "aws_ssm_document_version" "PublisherRegistration" {
-  count = var.use_ssm == true ? 1 : 0
-  
-  name            = aws_ssm_document.PublisherRegistration[0].name
-  document_format = "JSON"
-  
-  content = jsonencode({
-    schemaVersion = "1.2"
-    description   = "Register a Netskope Publisher via SSM"
-    parameters    = {}
-    runtimeConfig = {
-      "aws:runShellScript" = {
-        properties = [
-          {
-            id         = "0.aws:runShellScript"
-            runCommand = ["sudo /home/ubuntu/npa_publisher_wizard -token \"${netskope_npa_publisher_token.Publisher[0].token}\""]
-          }
-        ]
-      }
-    }
-  })
-
-  # Force new version when token changes
-  triggers = {
-    token = netskope_npa_publisher_token.Publisher[0].token
-  }
-}
 
