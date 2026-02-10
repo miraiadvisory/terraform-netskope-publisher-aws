@@ -67,7 +67,9 @@ resource "aws_ssm_document" "PublisherRegistration" {
   count = "${var.use_ssm == true ? 1 : 0}"
   name          = "SSM-Register-${var.publisher_name}"
   document_type = "Command"
-
+  lifecycle {
+    create_before_destroy = true
+  }
   content = <<DOC
   {
     "schemaVersion": "1.2",
