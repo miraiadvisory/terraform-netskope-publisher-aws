@@ -62,44 +62,78 @@ resource "aws_instance" "NPAPublisher" {
 
 }
 
-//Create SSM Document for Publisher
+//Create SSM Document for Publisher with versioning
 resource "aws_ssm_document" "PublisherRegistration" {
-  count = "${var.use_ssm == true ? 1 : 0}"
+  count = var.use_ssm == true ? 1 : 0
   name          = "SSM-Register-${var.publisher_name}"
   document_type = "Command"
-  lifecycle {
-    create_before_destroy = true
-  }
-  content = <<DOC
-  {
-    "schemaVersion": "1.2",
-    "description": "Register a Netskope Puplisher via SSM",
-    "parameters": {
-
-    },
-    "runtimeConfig": {
-      "aws:runShellScript": {
-        "properties": [
+  
+  content = jsonencode({
+    schemaVersion = "1.2"
+    description   = "Register a Netskope Publisher via SSM"
+    parameters    = {}
+    runtimeConfig = {
+      "aws:runShellScript" = {
+        properties = [
           {
-            "id": "0.aws:runShellScript",
-            "runCommand": ["sudo /home/ubuntu/npa_publisher_wizard -token \"${netskope_npa_publisher_token.Publisher.token}\""] 
+            id         = "0.aws:runShellScript"
+            runCommand = ["sudo /home/ubuntu/npa_publisher_wizard -token \"${netskope_npa_publisher_token.Publisher[0].token}\""]
           }
         ]
       }
     }
+  })
+
+  document_format = "JSON"
+  
+  # Don't recreate, just create new versions
+  lifecycle {
+    ignore_changes = [content]
   }
-DOC
 }
 
-//Associate Publisher with SSM
+//Associate Publisher with SSM - use default_version to get latest
 resource "aws_ssm_association" "register_publishers" {
-  count = "${var.use_ssm == true ? 1 : 0}"
-  name = "SSM-Register-${var.publisher_name}"
-  lifecycle {
-    create_before_destroy = true
-  }
+  count = var.use_ssm == true ? 1 : 0
+  name              = aws_ssm_document.PublisherRegistration[0].name
+  association_name  = "Register-${var.publisher_name}"
+  
   targets {
     key    = "InstanceIds"
     values = [aws_instance.NPAPublisher.id]
   }
+
+  lifecycle {
+    create_before_destroy = true
+  }
 }
+
+//Create new document version when token changes
+resource "aws_ssm_document_version" "PublisherRegistration" {
+  count = var.use_ssm == true ? 1 : 0
+  
+  name            = aws_ssm_document.PublisherRegistration[0].name
+  document_format = "JSON"
+  
+  content = jsonencode({
+    schemaVersion = "1.2"
+    description   = "Register a Netskope Publisher via SSM"
+    parameters    = {}
+    runtimeConfig = {
+      "aws:runShellScript" = {
+        properties = [
+          {
+            id         = "0.aws:runShellScript"
+            runCommand = ["sudo /home/ubuntu/npa_publisher_wizard -token \"${netskope_npa_publisher_token.Publisher[0].token}\""]
+          }
+        ]
+      }
+    }
+  })
+
+  # Force new version when token changes
+  triggers = {
+    token = netskope_npa_publisher_token.Publisher[0].token
+  }
+}
+
