@@ -11,17 +11,10 @@ resource "netskope_npa_publisher_token" "Publisher" {
   
   lifecycle {
     replace_triggered_by = [
-      null_resource.always_refresh.id
+      data.aws_ami.npa-publisher.id
     ]
   }
 }
-
-resource "null_resource" "always_refresh" {
-  triggers = {
-    refresh = timestamp()
-  }
-}
-
 
 
 //AWS Data
