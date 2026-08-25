@@ -99,10 +99,6 @@ resource "aws_ssm_association" "register_publishers" {
     key    = "InstanceIds"
     values = [aws_instance.NPAPublisher.id]
   }
-
-  lifecycle {
-    create_before_destroy = true
-  }
   
   depends_on = [aws_ssm_document.PublisherRegistration]
 }
