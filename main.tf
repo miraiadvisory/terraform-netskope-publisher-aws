@@ -62,29 +62,32 @@ resource "aws_instance" "NPAPublisher" {
 
 //Create SSM Document for Publisher with versioning
 resource "aws_ssm_document" "PublisherRegistration" {
-  count = var.use_ssm == true ? 1 : 0
+  count         = var.use_ssm == true ? 1 : 0
   name          = "SSM-Register-${var.publisher_name}"
   document_type = "Command"
-  
+
   content = jsonencode({
-    schemaVersion = "1.2"
+    schemaVersion = "2.2"
     description   = "Register a Netskope Publisher via SSM"
-    parameters    = {}
-    runtimeConfig = {
-      "aws:runShellScript" = {
-        properties = [
-          {
-            id         = "0.aws:runShellScript"
-            runCommand = ["sudo /home/ubuntu/npa_publisher_wizard -token \"${netskope_npa_publisher_token.Publisher.token}\""]
-          }
-        ]
+
+    parameters = {}
+
+    mainSteps = [
+      {
+        action = "aws:runShellScript"
+        name   = "registerPublisher"
+
+        inputs = {
+          runCommand = [
+            "sudo /home/ubuntu/npa_publisher_wizard -token \"${netskope_npa_publisher_token.Publisher.token}\""
+          ]
+        }
       }
-    }
+    ]
   })
 
   document_format = "JSON"
-  
-  # Create new version when content changes
+
   lifecycle {
     create_before_destroy = true
   }
