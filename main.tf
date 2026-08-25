@@ -87,10 +87,6 @@ resource "aws_ssm_document" "PublisherRegistration" {
   })
 
   document_format = "JSON"
-
-  lifecycle {
-    create_before_destroy = true
-  }
 }
 
 //Associate Publisher with SSM
